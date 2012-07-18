@@ -1,0 +1,4 @@
+2012/07/19 Hideshi Tsubota
+
+linearmodel.linear:liblinear用の学習データファイル
+*.mat:matlabで作成した学習データをconvert.mによりC++ソース用に変換した学習データファイル

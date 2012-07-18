@@ -1,0 +1,12 @@
+2012/07/19 Hideshi Tsubota
+
+1:INSTALL
+cd liblinear-dense-float
+make
+
+cd ../
+make
+
+※Dependences Eigen3, OpenCV2.3.0, libmatio
+Please install those library before compile this program.
+

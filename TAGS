@@ -1,0 +1,307 @@
+
+computekdes.cc,335
+static	IplImage *frame frame13,409
+static boost::mutex m;14,440
+const char* model_name 15,463
+const char* model_file 16,513
+const char* model_var 17,563
+const char* param_file 18,611
+void GetFileListFromDirectory(21,663
+MatrixXf read_topleft_loc(46,1144
+bool processImage(69,1631
+void ComputeKDES(99,2660
+int main(180,5580
+
+kernelmain.cc,605
+static	IplImage *frame frame14,431
+static boost::mutex m;15,462
+const char* model_name 16,485
+const char* model_file 17,535
+const char* model_var 18,585
+const char* param_file 19,633
+#define	USE_GRABCUT	21,684
+#define FRAME_WIDTH_LIVE 27,775
+#define FRAME_HEIGHT_LIVE 28,807
+bool run_grab_cut=30,841
+string object_name;31,866
+	CvFont font;32,886
+CvCapture *capture capture34,901
+void ClearCinBufferFlags(36,929
+void SetupFont 42,1041
+void ThreadCaptureFrame(51,1224
+void ThreadRunDescriptors(81,1782
+void GetFileListFromDirectory(234,8043
+void DataSetDemo(257,8601
+int main(284,9498
+
+libkerneldesc.cc,274
+KernelDescManager::KernelDescManager(7,148
+string KernelDescManager::GetObjectName(23,1191
+bool KernelDescManager::Process(107,3891
+bool KernelDescManager::Process(113,4043
+void KernelDescManager::PrintModelList(223,8615
+KernelDescManager::~KernelDescManager(231,8761
+
+matop.cc,97
+#define EIGEN_DEFAULT_TO_ROW_MAJOR4,32
+#define DEBUG5,67
+int Reshape(15,262
+int main(47,1241
+
+mattest.cc,15
+int main(4,65
+
+libkerneldesc.h,2270
+static unsigned int MODEL_TYPE=7,255
+#define PI 9,290
+using namespace std;24,646
+using namespace MatIO;25,667
+using namespace Eigen;26,690
+#define LIBKERNELDESC_H30,739
+const int MAX_IMAGE_SIZE 32,764
+#define OBJECTS_TO_PRINT 35,836
+  #define NEW_BOOST 38,925
+static const char* model_names[model_names41,955
+static const char* model_files[model_files48,1158
+static const char* model_vars[model_vars55,1283
+static const char* param_files[param_files62,1403
+typedef std::pair<int,int66,1537
+typedef std::pair<int,int> myindex;66,1537
+typedef std::pair<float,float67,1573
+typedef std::pair<float,myindex> mypair;67,1573
+static bool comparator 68,1614
+static inline bool isnan(71,1704
+static void debugImg(73,1759
+static matvarplus_t* load_mat(88,2050
+static void isotropic_gaussian(103,2509
+static IplImage* rgb2gray(119,3031
+static MatrixXf scaletest_linear(141,3539
+inline float checkNan(148,3766
+inline float maxZero(156,3858
+static MatrixXf EvalKernelExp(162,3916
+static MatrixXf EvalKernelExp_d(190,4644
+static MatrixXf EvalKernelExp_Matlab(220,5591
+static MatrixXf EvalKernelExp_Img2(285,7414
+static MatrixXf EvalKernelExp_Img3(320,8274
+static void GKDESDense(363,9255
+static void RGBKDESDense(545,15467
+static void depth2cloud(677,19593
+static void pcnormal(701,20347
+static void SpinKDESDense(749,21861
+static void CKSVDEMK(929,28825
+class KernelDescManager1012,31660
+	string model_name;KernelDescManager::model_name1024,32109
+	string model_file;KernelDescManager::model_file1025,32129
+	string model_var;KernelDescManager::model_var1026,32149
+	string param_file;KernelDescManager::param_file1027,32168
+	string model_dir;KernelDescManager::model_dir1028,32188
+	string param_dir;KernelDescManager::param_dir1029,32207
+	string model_kdes_treeroot;KernelDescManager::model_kdes_treeroot1030,32226
+	matvarplus_t* model_kdes,KernelDescManager::model_kdes1031,32255
+	matvarplus_t* model_kdes, *kdes_params;KernelDescManager::kdes_params1031,32255
+	vector<string>* model_list;KernelDescManager::model_list1032,32296
+	unsigned int MODEL_TYPE;KernelDescManager::MODEL_TYPE1033,32325
+	int MAX_IMAGE_SIZE;KernelDescManager::MAX_IMAGE_SIZE1034,32351
+	VectorXf top_left;KernelDescManager::top_left1035,32372
+
+mattest.h,1443
+#define MATTEST_H2,18
+#define EXIT_SUCCESS 3,36
+#define foreach 4,59
+#define EIGEN_DEFAULT_TO_ROW_MAJOR5,89
+using namespace std;21,469
+using namespace boost::numeric;22,490
+namespace MatIO 24,545
+	static void Mat_Message(MatIO::Mat_Message26,564
+	static void Mat_Message(MatIO::Mat_Message27,605
+	static void Mat_Message(MatIO::Mat_Message28,658
+	static void Mat_Message(MatIO::Mat_Message29,703
+	static void Mat_Message(MatIO::Mat_Message30,751
+	struct matvarplus_t MatIO::matvarplus_t37,969
+		matvar_t* matvar;MatIO::matvarplus_t::matvar38,992
+		matvarplus_t* parent;MatIO::matvarplus_t::parent39,1027
+		vector<matvarplus_t*> children;MatIO::matvarplus_t::children40,1051
+		boost::variant<MatIO::matvarplus_t::boost::variant41,1085
+		boost::variant<Eigen::MatrixXf*, std::string > mat_char;MatIO::matvarplus_t::mat_char41,1085
+		matvarplus_t(MatIO::matvarplus_t::matvarplus_t42,1147
+		~matvarplus_t(MatIO::matvarplus_t::~matvarplus_t43,1235
+	static vector<string>* get_charlist(MatIO::get_charlist55,1498
+	static bool get_matrix(MatIO::get_matrix111,3016
+	static T get_value(MatIO::get_value174,5041
+	static void print_bfstree(MatIO::print_bfstree181,5190
+		Mat_GetFloatNumber(MatIO::Mat_GetFloatNumber206,6041
+		Mat_VarUBlas(MatIO::Mat_VarUBlas218,6275
+	static int indent MatIO::indent341,10934
+	static int printdata MatIO::printdata342,10958
+		print_default(MatIO::print_default344,10998
+
+liblinear-dense-float/linear.cpp,2860
+typedef signed char schar;8,135
+template <class T> static inline void swap(9,162
+template <class T> static inline T min(11,250
+template <class T> static inline T max(14,339
+template <class S, class T> static inline void clone(16,416
+#define Malloc(21,563
+#define INF 22,619
+static void print_string_stdout(24,641
+static void info(33,805
+static void info(43,973
+class l2r_lr_fun 46,1022
+	double *C;l2r_lr_fun::C62,1339
+	double *z;l2r_lr_fun::z63,1351
+	double *D;l2r_lr_fun::D64,1363
+	const problem *prob;l2r_lr_fun::prob65,1375
+l2r_lr_fun::l2r_lr_fun(68,1401
+l2r_lr_fun::~l2r_lr_fun(89,1675
+double l2r_lr_fun::fun(97,1746
+void l2r_lr_fun::grad(122,2097
+int l2r_lr_fun::get_nr_variable(144,2442
+void l2r_lr_fun::Hv(149,2502
+void l2r_lr_fun::Xv(166,2768
+void l2r_lr_fun::XTv(200,3233
+class l2r_l2_svc_fun 237,3728
+	double *C;l2r_l2_svc_fun::C254,4096
+	double *z;l2r_l2_svc_fun::z255,4108
+	double *D;l2r_l2_svc_fun::D256,4120
+	int *I;l2r_l2_svc_fun::I257,4132
+	int sizeI;l2r_l2_svc_fun::sizeI258,4141
+	const problem *prob;l2r_l2_svc_fun::prob259,4153
+l2r_l2_svc_fun::l2r_l2_svc_fun(262,4179
+l2r_l2_svc_fun::~l2r_l2_svc_fun(284,4478
+double l2r_l2_svc_fun::fun(292,4569
+void l2r_l2_svc_fun::grad(316,4880
+int l2r_l2_svc_fun::get_nr_variable(339,5251
+void l2r_l2_svc_fun::Hv(344,5315
+void l2r_l2_svc_fun::Xv(361,5595
+void l2r_l2_svc_fun::subXv(398,6036
+void l2r_l2_svc_fun::subXTv(431,6480
+class Solver_MCSVM_CS485,7497
+		double *B,Solver_MCSVM_CS::B494,7843
+		double *B, *C,Solver_MCSVM_CS::C494,7843
+		double *B, *C, *G;Solver_MCSVM_CS::G494,7843
+		int w_size,Solver_MCSVM_CS::w_size495,7864
+		int w_size, l;Solver_MCSVM_CS::l495,7864
+		int nr_class;Solver_MCSVM_CS::nr_class496,7881
+		int max_iter;Solver_MCSVM_CS::max_iter497,7897
+		double eps;Solver_MCSVM_CS::eps498,7913
+		const problem *prob;Solver_MCSVM_CS::prob499,7927
+Solver_MCSVM_CS::Solver_MCSVM_CS(502,7954
+Solver_MCSVM_CS::~Solver_MCSVM_CS(515,8283
+int compare_double(521,8350
+void Solver_MCSVM_CS::solve_sub_problem(530,8506
+bool Solver_MCSVM_CS::be_shrunk(555,9021
+void Solver_MCSVM_CS::Solve(565,9218
+static void solve_l2r_l1l2_svc(825,14846
+static void solve_l1r_l2_svc(1057,18901
+static void solve_l1r_lr(1422,25406
+static void transpose(1767,31945
+static void group_classes(1856,33644
+static void train_one(1913,34815
+model* train(1996,36715
+void destroy_model(2131,39479
+static const char *solver_type_table[solver_type_table2140,39632
+int save_model(2145,39795
+struct model *load_model(load_model2190,40782
+int predict_values(2288,42620
+int predict(2349,43829
+int predict_probability(2361,44110
+void destroy_param(2398,44904
+const char *check_parameter(check_parameter2406,45058
+void cross_validation(2426,45547
+int get_nr_feature(2484,46729
+int get_nr_class(2489,46802
+void get_labels(2494,46871
+
+liblinear-dense-float/tron.cpp,311
+template <class T> static inline T min(8,108
+template <class T> static inline T max(12,198
+static void default_print(28,577
+void TRON::info(34,662
+TRON::TRON(44,819
+TRON::~TRON(52,1012
+void TRON::tron(56,1031
+int TRON::trcg(162,3557
+double TRON::norm_inf(226,5013
+void TRON::set_print_string(235,5173
+
+liblinear-dense-float/predict.c,317
+struct feature_node *x;x8,118
+int max_nr_attr 9,142
+struct model* model_;11,165
+int flag_predict_probability=12,187
+void exit_input_error(14,220
+static char *line line20,333
+static int max_line_len;21,359
+static char* readline(23,385
+void do_predict(41,710
+void exit_with_help(151,3272
+int main(161,3490
+
+liblinear-dense-float/train.c,549
+#define Malloc(8,135
+#define INF 9,191
+void print_null(11,213
+void exit_with_help(13,248
+void exit_input_error(45,1626
+static char *line line51,1739
+static int max_line_len;52,1765
+static char* readline(54,1791
+struct feature_node *x_space;x_space76,2280
+struct parameter param;77,2310
+struct problem prob;78,2334
+struct model* model_;79,2355
+int flag_cross_validation;80,2377
+int nr_fold;81,2404
+double bias;82,2417
+int main(84,2431
+void do_cross_validation(119,3031
+void parse_command_line(135,3343
+void read_problem(233,5458
+
+liblinear-dense-float/linear.h,1196
+#define _LIBLINEAR_H2,21
+struct problem10,102
+  int l,12,119
+  int l,n;12,119
+  int *y;y13,130
+  float **x;x14,140
+  double bias;15,153
+struct feature_node20,179
+	int index;22,201
+	double value;23,213
+struct problem26,232
+	int l,28,249
+	int l, n;28,249
+	int *y;y29,260
+	struct feature_node **x;x30,269
+	double bias;31,295
+enum { L2R_LR,35,376
+enum { L2R_LR, L2R_L2LOSS_SVC_DUAL,35,376
+enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC,35,376
+enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL,35,376
+enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, MCSVM_CS,35,376
+enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, MCSVM_CS, L1R_L2LOSS_SVC,35,376
+enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, MCSVM_CS, L1R_L2LOSS_SVC, L1R_LR 35,376
+struct parameter37,504
+	int solver_type;39,523
+	double eps;42,577
+	double C;43,622
+	int nr_weight;44,633
+	int *weight_label;weight_label45,649
+	double* weight;46,669
+struct model49,690
+	struct parameter param;51,705
+	int nr_class;52,730
+	int nr_feature;53,770
+	double *w;w54,787
+	int *label;label55,799
+	double bias;56,839
+
+liblinear-dense-float/tron.h,214
+#define _TRON_H2,16
+class function4,33
+	virtual ~function(function::~function12,230
+class TRON15,261
+	double eps;TRON::eps28,551
+	int max_iter;TRON::max_iter29,564
+	function *fun_obj;TRON::fun_obj30,579
