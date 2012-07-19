@@ -399,9 +399,17 @@ void DataSetDemo()
   for (itr = filelist.begin(); itr < filelist.end();++itr)
     {
       MatrixXf imfea2;
+      VectorXf top_left(2);
       IplImage* img_init = cvLoadImage(string("./testim/" + *itr).c_str(),CV_LOAD_IMAGE_ANYCOLOR);
-      bool result = kdm->Process(imfea2,img_init);
-      
+      bool result;
+      if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
+	result = kdm->Process(imfea2,img_init);
+      else if( MODEL_TYPE == 3 )
+	result = kdm->Process(imfea2,img_init);
+      else if( MODEL_TYPE == 4 ){
+	top_left[0] == 267; top_left[1] = 167;//TODO:Load loc.txt file.
+	result = kdm->Process(imfea2,img_init, top_left);
+      }
       //cvShowImage("ProcessedImage", frame);
       string object_name = kdm->GetObjectName(imfea2);
       cvPutText(img_init, object_name.c_str(), cvPoint(30,30), &font ,cvScalar(0,256,0));

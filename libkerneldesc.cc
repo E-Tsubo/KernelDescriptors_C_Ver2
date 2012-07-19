@@ -70,6 +70,8 @@ string KernelDescManager::GetObjectName(MatrixXf& imfea)
     get_matrix(svmW, this->model_kdes,"modelgkdes->svm->w");
   }else if( MODEL_TYPE == 2 ){
     get_matrix(svmW, this->model_kdes,"modelrgbkdes->svm->w");
+  }else if( MODEL_TYPE == 4 ){
+    get_matrix(svmW, this->model_kdes,"modelspinkdes->svm->w");
   }
   MatrixXf svmMinValue;
   MatrixXf svmMaxValue;
@@ -79,6 +81,9 @@ string KernelDescManager::GetObjectName(MatrixXf& imfea)
   }else if( MODEL_TYPE == 2 ){
     get_matrix(svmMaxValue, this->model_kdes,"modelrgbkdes->svm->maxvalue"); 
     get_matrix(svmMinValue, this->model_kdes,"modelrgbkdes->svm->minvalue");
+  }else if( MODEL_TYPE == 4 ){
+    get_matrix(svmMaxValue, this->model_kdes,"modelspinkdes->svm->maxvalue"); 
+    get_matrix(svmMinValue, this->model_kdes,"modelspinkdes->svm->minvalue");
   }
   MatrixXf imfea_s = scaletest_linear( imfea, svmMinValue, svmMaxValue);
   
