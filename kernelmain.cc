@@ -28,6 +28,9 @@ const char* param_file = param_files[MODEL_TYPE];
   #define USE_KINECT_DEP 0
 #endif
 
+//either USE_SELFCUT or USE_GRABCUT
+//Not supported both option at same time
+#define USE_SELFCUT 1
 #define	USE_GRABCUT 1
 #ifdef USE_GRABCUT
   #include <opencv2/imgproc/imgproc.hpp>
@@ -36,6 +39,7 @@ const char* param_file = param_files[MODEL_TYPE];
 #define FRAME_WIDTH_LIVE 160*2
 #define FRAME_HEIGHT_LIVE 120*2
 
+bool run_self_cut=false;
 bool run_grab_cut=false;
 string object_name;
 CvFont font;
@@ -163,7 +167,29 @@ void ThreadRunDescriptors()
       
       if (img_src != NULL)
 	{
-	  if (run_grab_cut) {
+	  if (run_self_cut) {
+	    //
+	    const int cut_width = 100;
+	    const int cut_height = 150;
+	    //
+	    	    
+	    cv::Mat image( img_src );
+	    int xcenter = (int)(img_src->width/2);
+	    int ycenter = (int)(img_src->height/2);
+	    
+	    cv::Rect bounding_rect( xcenter-cut_width/2, ycenter-cut_height/2,
+				    cut_width, cut_height );
+	    cvSetImageROI( img_src, bounding_rect );
+	    img_crop=cvCreateImage( cvSize(bounding_rect.width,bounding_rect.height), IPL_DEPTH_8U, 3 );
+	    cvCopy( img_src, img_crop, NULL );
+	    cvResetImageROI( img_src );
+	    
+	    //For Image View, draw rectangle which shows segmentation range.
+	    cvRectangle( img_src, cvPoint( xcenter-cut_width/2, ycenter-cut_height/2 ),
+			 cvPoint( xcenter+cut_width/2, ycenter+cut_height/2 ),
+			 cvScalar( 0, 0, 255 ), 2, 8, 0 );
+	    
+	  }else if (run_grab_cut) {
 	    // call opencv gracut to try and extract foreground object
 	    cv::Mat image( img_src );
 	    cv::Mat mask( img_src->height, img_src->width, CV_8UC1 );
@@ -373,10 +399,11 @@ int main(int argc, char* argv[]) {
     {
       cout << "Enter '1' for camera demo (full image)," << endl
 	   << "      '2' for camera demo (w/ GrabCut)," << endl
-	   << "      '3' for demo with image dataset"   << endl;
+	   << "      '3' for demo with image dataset"   << endl
+	   << "      '4' for camera demo (self cut)"    << endl;
       cin >> opt;
       cout << "Opt: " << opt << endl;
-      if (opt==1 || opt==2)
+      if (opt==1 || opt==2 || opt==4)
 	{
 	  
 	  // On Windows: change camera resolution only works in the main thread
@@ -392,6 +419,9 @@ int main(int argc, char* argv[]) {
 	  int key = 0;
 	  if (opt==2) {
 	    run_grab_cut=true;
+	  }
+	  if (opt==4) {
+	    run_self_cut=true;
 	  }
 	  boost::thread workerThread(&ThreadCaptureFrame);
 	  boost::thread descriptorThread(&ThreadRunDescriptors);
