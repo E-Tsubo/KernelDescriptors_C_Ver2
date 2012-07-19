@@ -10,6 +10,7 @@ KernelDescManager::KernelDescManager(string model_name,string model_file, string
   : model_name(model_name), model_file(model_file), model_var(model_var), param_file(param_file),
     MODEL_TYPE(MODEL_TYPE), MAX_IMAGE_SIZE(MAX_IMAGE_SIZE)
 {
+  this->MODEL_TYPE = USE_MODEL_TYPE;
   this->model_dir = string("./model_my/") + model_file +string(".mat");
   cout << "Model Dir: " << this->model_dir.c_str() << " Model file: " << model_file <<  endl;
   this->param_dir = string("./kdes/") + param_file + string(".mat");
@@ -17,12 +18,12 @@ KernelDescManager::KernelDescManager(string model_name,string model_file, string
   this->kdes_params = load_mat("Param file", param_dir.c_str());
   this->model_kdes_treeroot = model_var + string("->svm->classname");
   this->model_list = get_charlist(this->model_kdes, this->model_kdes_treeroot.c_str());
-  //PrintModelList();
+  this->linearmodel_file = string("./model_my/") + model_file + string(".linear");
+  PrintModelList();
   if (this->model_list == NULL)
     printf("WARNING: the model list is nulli\n");
   else 
     printf("This is a kernel descriptor demo for %d-class object recognition\n",(int)this->model_list->size());
-  
 }
 
 int KernelDescManager::GetObjectName_liblinear(MatrixXf& imfea)
@@ -36,7 +37,7 @@ int KernelDescManager::GetObjectName_liblinear(MatrixXf& imfea)
   //std::cout << imfea_s( 100,0 ) << "test" << std::endl;//OK!! imfea_s( 14000-1, 0 )
   
   struct model* linearmodel;
-  if( ( linearmodel = load_model( "./model_my/linearmodel.linear" ) ) == 0 ){
+  if( ( linearmodel = load_model( this->linearmodel_file.c_str() ) ) == 0 ){
     std::cerr << "Can not open model file" << std::endl;
     return -1;
   }

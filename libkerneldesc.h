@@ -1,10 +1,11 @@
 //#define EIGEN_DEFAULT_TO_ROW_MAJOR
 
 //#define MODEL_TYPE 0                 // gradient
-//#define MODEL_TYPE 2                 // color
+//#define MODEL_TYPE 2                 // color    (not normal)
 //#define MODEL_TYPE 3                 // gradient (depth)
 //#define MODEL_TYPE 4                 // spin     (depth)
-static unsigned int MODEL_TYPE=0;
+static unsigned int MODEL_TYPE=2;
+static unsigned int USE_MODEL_TYPE=MODEL_TYPE;
 
 #define PI 3.14159265 
 #include <opencv/cv.h>
@@ -542,135 +543,137 @@ static void GKDESDense(MatrixXf& feaArr, MatrixXf& feaMag, MatrixXf& fgrid_y, Ma
 
 
 // RGBKDESDense function
-static void RGBKDESDense(MatrixXf& feaArr, MatrixXf& feaMag, MatrixXf& fgrid_y, MatrixXf& fgrid_x, IplImage* im, matvarplus_t* kdes_params, int grid_space, int patch_size) {
-	const float low_contrast = 0;
+static void RGBKDESDense(MatrixXf& feaArr, MatrixXf& feaMag, MatrixXf& fgrid_y, MatrixXf& fgrid_x,
+			 IplImage* im, matvarplus_t* kdes_params, int grid_space, int patch_size)
+{
+  const float low_contrast = 0;
+  
+  MatrixXf gpoints;
+  get_matrix(gpoints, kdes_params, "kpcaRGBDes->rgbpoints");
+  MatrixXf spoints;
+  get_matrix(spoints, kdes_params, "kpcaRGBDes->spoints");
+  MatrixXf kparam; 
+  get_matrix(kparam, kdes_params, "kpcaRGBDes->kparam");
 
-	MatrixXf gpoints;
-	get_matrix(gpoints, kdes_params, "kpcaRGBDes->rgbpoints");
-	MatrixXf spoints;
-	get_matrix(spoints, kdes_params, "kpcaRGBDes->spoints");
-	MatrixXf kparam; 
-	get_matrix(kparam, kdes_params, "kpcaRGBDes->kparam");
+  int img_h = im->height;
+  int img_w = im->width;
 
-	int img_h = im->height;
-	int img_w = im->width;
+  IplImage* imR = cvCreateImage( cvGetSize(im), IPL_DEPTH_32F, 1 );
+  IplImage* imG = cvCreateImage( cvGetSize(im), IPL_DEPTH_32F, 1 );
+  IplImage* imB = cvCreateImage( cvGetSize(im), IPL_DEPTH_32F, 1 );
+  
+  cvSplit( im, imB, imG, imR, NULL );// note the BGR order
 
-	IplImage* imR = cvCreateImage( cvGetSize(im), IPL_DEPTH_32F, 1 );
-	IplImage* imG = cvCreateImage( cvGetSize(im), IPL_DEPTH_32F, 1 );
-	IplImage* imB = cvCreateImage( cvGetSize(im), IPL_DEPTH_32F, 1 );
+  //debugImg("GKDESDense Image", im);
+  
+  // float max patch_size = max(patch_size) // i haven't seen an instance where there are multiple patch sizes yet TODO
+  
+  float rem_x = ( (img_w-patch_size-1) % grid_space )+1;
+  float rem_y = ( (img_h-patch_size-1) % grid_space )+1;
+  
+  float offset_x = floor(rem_x/2) + 1;
+  float offset_y = floor(rem_y/2) + 1;
 
-	cvSplit( im, imB, imG, imR, NULL );   // note the BGR order
-
-	//debugImg("GKDESDense Image", im);
-
-	// float max patch_size = max(patch_size) // i haven't seen an instance where there are multiple patch sizes yet TODO
-
-	float rem_x = ( (img_w-patch_size-1) % grid_space )+1;
-	float rem_y = ( (img_h-patch_size-1) % grid_space )+1;
-
-	float offset_x = floor(rem_x/2) + 1;
-	float offset_y = floor(rem_y/2) + 1;
-
-	// meshgrid
-	int multiplier_x = floor((img_w-patch_size+1 - offset_x)/grid_space) + 1;
-	int multiplier_y = floor((img_h - patch_size + 1 - offset_y)/grid_space) + 1;
-	RowVectorXf grid_x_v = RowVectorXf(multiplier_x);
-	for (int i = 0; i < multiplier_x; i++) {
-		grid_x_v(i) = offset_x+grid_space*i;
-	}
-	MatrixXf grid_x = grid_x_v.replicate(multiplier_y,1);
-	VectorXf grid_y_v = VectorXf(multiplier_y);
-	for (int i = 0; i < multiplier_y; i++) {
-		grid_y_v(i) = offset_y+grid_space*i;
-	}
-	MatrixXf grid_y = grid_y_v.replicate(1,multiplier_x);
-
-	int patches_amt = grid_x.rows()*grid_y.cols();
-
-	MatrixXf imR_mat = MatrixXf::MapAligned((float*)imR->imageData, imR->width,imR->height);
-	MatrixXf imG_mat = MatrixXf::MapAligned((float*)imG->imageData, imG->width,imG->height);
-	MatrixXf imB_mat = MatrixXf::MapAligned((float*)imB->imageData, imB->width,imB->height);
-	// due to row/column major order mismatch, need to transpose
-	imR_mat.transposeInPlace();
-	imG_mat.transposeInPlace();
-	imB_mat.transposeInPlace();
-
-	//cout << "call kernel img3" << endl;
-
-	MatrixXf kparam_g = kparam.block(0,0,1,kparam.cols()-2);
-	MatrixXf im_k = EvalKernelExp_Img3(imR_mat,imG_mat,imB_mat,gpoints,kparam_g);
-
-	VectorXf sub_vector(patch_size);
-	for (float i = 0; i < patch_size; i++)
-	{
-		sub_vector(i) = i/patch_size;
-	}
-	MatrixXf yy = sub_vector.replicate(1, patch_size);
-	MatrixXf xx = yy.transpose();
-
-	MatrixXf kparam_s = kparam.block(0,kparam.cols()-2,1,2);
-
-	MatrixXf skv = EvalKernelExp_Img2(yy,xx,spoints,kparam_s);
-	skv.transposeInPlace();
-
-	MatrixXf kparam_eigen; 
-	get_matrix(kparam_eigen, kdes_params, "kpcaRGBDes->eigvectors");
-
-	MatrixXf mwkvs( kparam_eigen.cols(), patches_amt );  // transpose from matlab version
-	MatrixXf gkdes_mag( patch_size*patch_size, patches_amt );
-
-	const int gsize = im_k.cols();
-
-	MatrixXf skv_w( skv.rows(), patch_size*patch_size );
-	MatrixXf im_p( patch_size*patch_size, gsize );
-	MatrixXf mwkv;
-
-	for(int i=0; i<patches_amt; i++) {
-
-		float x_lo = grid_x(i)-1;
-		float x_hi = x_lo + patch_size - 1;
-		float y_lo = grid_y(i)-1;
-		float y_hi = y_lo + patch_size - 1;
-
-		skv_w.array() = skv.array();
-
-		for(int x=0; x<patch_size; x++) {
-			im_p.block(x*patch_size,0,patch_size,gsize ) = im_k.block( y_lo+(x_lo+x)*img_h,0,patch_size,gsize );
-		}
-
-		mwkv = skv_w*im_p;
-		mwkv.transposeInPlace();
-		mwkv /= skv.cols();
-
-		mwkv.resize( mwkv.rows()*mwkv.cols(),1 );
-		mwkvs.col(i) = mwkv.col(0);
-
-	}
-
-	feaArr = kparam_eigen*mwkvs;
-
-	//cout << "feaArr" << endl <<  feaArr.block(0,feaArr.cols()-250,10,10) <<endl;
-
-	fgrid_y = grid_y;
-	fgrid_y.resize( fgrid_y.rows()*fgrid_y.cols(),1 );
-	fgrid_y.array() = fgrid_y.array() + (patch_size*0.5f-0.5f);
-	fgrid_x = grid_x;
-	fgrid_x.resize( fgrid_x.rows()*fgrid_x.cols(),1 );
-	fgrid_x.array() = fgrid_x.array() + (patch_size*0.5f-0.5f);
-	/*	delete gpoints;
+  // meshgrid
+  int multiplier_x = floor((img_w-patch_size+1 - offset_x)/grid_space) + 1;
+  int multiplier_y = floor((img_h - patch_size + 1 - offset_y)/grid_space) + 1;
+  RowVectorXf grid_x_v = RowVectorXf(multiplier_x);
+  for (int i = 0; i < multiplier_x; i++) {
+    grid_x_v(i) = offset_x+grid_space*i;
+  }
+  MatrixXf grid_x = grid_x_v.replicate(multiplier_y,1);
+  VectorXf grid_y_v = VectorXf(multiplier_y);
+  for (int i = 0; i < multiplier_y; i++) {
+    grid_y_v(i) = offset_y+grid_space*i;
+  }
+  MatrixXf grid_y = grid_y_v.replicate(1,multiplier_x);
+  
+  int patches_amt = grid_x.rows()*grid_y.cols();
+  
+  MatrixXf imR_mat = MatrixXf::MapAligned((float*)imR->imageData, imR->width,imR->height);
+  MatrixXf imG_mat = MatrixXf::MapAligned((float*)imG->imageData, imG->width,imG->height);
+  MatrixXf imB_mat = MatrixXf::MapAligned((float*)imB->imageData, imB->width,imB->height);
+  // due to row/column major order mismatch, need to transpose
+  imR_mat.transposeInPlace();
+  imG_mat.transposeInPlace();
+  imB_mat.transposeInPlace();
+  
+  //cout << "call kernel img3" << endl;
+  
+  MatrixXf kparam_g = kparam.block(0,0,1,kparam.cols()-2);
+  MatrixXf im_k = EvalKernelExp_Img3(imR_mat,imG_mat,imB_mat,gpoints,kparam_g);
+  
+  VectorXf sub_vector(patch_size);
+  for (float i = 0; i < patch_size; i++)
+    {
+      sub_vector(i) = i/patch_size;
+    }
+  MatrixXf yy = sub_vector.replicate(1, patch_size);
+  MatrixXf xx = yy.transpose();
+  
+  MatrixXf kparam_s = kparam.block(0,kparam.cols()-2,1,2);
+  
+  MatrixXf skv = EvalKernelExp_Img2(yy,xx,spoints,kparam_s);
+  skv.transposeInPlace();
+  
+  MatrixXf kparam_eigen; 
+  get_matrix(kparam_eigen, kdes_params, "kpcaRGBDes->eigvectors");
+  
+  MatrixXf mwkvs( kparam_eigen.cols(), patches_amt );  // transpose from matlab version
+  MatrixXf gkdes_mag( patch_size*patch_size, patches_amt );
+  
+  const int gsize = im_k.cols();
+  
+  MatrixXf skv_w( skv.rows(), patch_size*patch_size );
+  MatrixXf im_p( patch_size*patch_size, gsize );
+  MatrixXf mwkv;
+  
+  for(int i=0; i<patches_amt; i++) {
+    
+    float x_lo = grid_x(i)-1;
+    float x_hi = x_lo + patch_size - 1;
+    float y_lo = grid_y(i)-1;
+    float y_hi = y_lo + patch_size - 1;
+    
+    skv_w.array() = skv.array();
+    
+    for(int x=0; x<patch_size; x++) {
+      im_p.block(x*patch_size,0,patch_size,gsize ) = im_k.block( y_lo+(x_lo+x)*img_h,0,patch_size,gsize );
+    }
+    
+    mwkv = skv_w*im_p;
+    mwkv.transposeInPlace();
+    mwkv /= skv.cols();
+    
+    mwkv.resize( mwkv.rows()*mwkv.cols(),1 );
+    mwkvs.col(i) = mwkv.col(0);
+    
+  }
+  
+  feaArr = kparam_eigen*mwkvs;
+  
+  //cout << "feaArr" << endl <<  feaArr.block(0,feaArr.cols()-250,10,10) <<endl;
+  
+  fgrid_y = grid_y;
+  fgrid_y.resize( fgrid_y.rows()*fgrid_y.cols(),1 );
+  fgrid_y.array() = fgrid_y.array() + (patch_size*0.5f-0.5f);
+  fgrid_x = grid_x;
+  fgrid_x.resize( fgrid_x.rows()*fgrid_x.cols(),1 );
+  fgrid_x.array() = fgrid_x.array() + (patch_size*0.5f-0.5f);
+  /*	delete gpoints;
 	delete spoints;
 	delete kparam;
 	gpoints = NULL;
 	spoints = NULL;
 	kparam = NULL;
-	*/
-	cvReleaseImage(&imR);
-	cvReleaseImage(&imG);
-	cvReleaseImage(&imB);
-	imR = NULL;
-	imG = NULL;
-	imB = NULL;
-	// adding 
+  */
+  cvReleaseImage(&imR);
+  cvReleaseImage(&imG);
+  cvReleaseImage(&imB);
+  imR = NULL;
+  imG = NULL;
+  imB = NULL;
+  // adding 
 };
 
 
@@ -1030,6 +1033,7 @@ private:
 	string model_dir;
 	string param_dir;
 	string model_kdes_treeroot;
+	string linearmodel_file;
 	matvarplus_t* model_kdes, *kdes_params;
 	vector<string>* model_list;
 	unsigned int MODEL_TYPE;
