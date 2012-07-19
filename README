@@ -7,6 +7,16 @@ make
 cd ../
 make
 
-※Dependences Eigen3, OpenCV2.3.0, libmatio
+※
+Dependences Eigen3, OpenCV2.3.0, libmatio
 Please install those library before compile this program.
+
+※
+This Code is remaked of original code "KernelDescriptors_CPU_v1_2".
+At libkerneldesc, I add eval_kernel_matlab function.
+This is compartible for matlab code. Use this function!!.
+And, kernelmain support GradientKdes and RGBKdes for RGB Image.
+Now, doesn't support depth image, kinect sensor and others features.
+Finally, add liblinear function in order to predict.
+I make GetObjectName_liblinear function. Please use this function!!.
 

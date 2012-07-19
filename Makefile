@@ -1,6 +1,6 @@
 all:lib test computekdes mattest matop
 lib: libkerneldesc.cc
-	g++ -g -c libkerneldesc.cc -msse -msse2 -msse3 -msse4  -IInclude -lmatio `pkg-config opencv matio --cflags --libs`
+	g++ -O3 -g -c libkerneldesc.cc -msse -msse2 -msse3 -msse4  -IInclude -lmatio `pkg-config opencv matio --cflags --libs`
 #	g++ -g -c libkerneldesc.cc -msse -msse2 -msse3 -msse4  -IInclude -lmatio `pkg-config opencv matio --cflags --libs`
 	ar rvs libkerneldesc.a libkerneldesc.o
 test: kernelmain.cc
