@@ -13,15 +13,22 @@
 
 //using namespace  boost::filesystem;
 
-static	IplImage *frame = NULL;
+static IplImage *frame = NULL;
+static IplImage *frame_dep = NULL;
+
 static boost::mutex m;
 const char* model_name = model_names[MODEL_TYPE];
 const char* model_file = model_files[MODEL_TYPE];
 const char* model_var = model_vars[MODEL_TYPE];
 const char* param_file = param_files[MODEL_TYPE];
 
-#define	USE_GRABCUT 1
+#define USE_KINECT 1
+#ifdef USE_KINECT
+  #define USE_KINECT_RGB 1
+  #define USE_KINECT_DEP 0
+#endif
 
+#define	USE_GRABCUT 1
 #ifdef USE_GRABCUT
   #include <opencv2/imgproc/imgproc.hpp>
 #endif
@@ -34,10 +41,13 @@ string object_name;
 CvFont font;
 
 CvCapture *capture = NULL;
+#if USE_KINECT
+  cv::VideoCapture capturekinect( CV_CAP_OPENNI );
+#endif
 
 void ClearCinBufferFlags()
 {
-  cin.clear();	//opt = -1;
+  cin.clear();//opt = -1;
   cin.ignore(numeric_limits<streamsize>::max(), '\n');
 }
 
@@ -48,6 +58,35 @@ void SetupFont (CvFont& font)
   int    lineWidth=2;
   cvInitFont(&font,CV_FONT_HERSHEY_SIMPLEX|CV_FONT_ITALIC, hScale,vScale,0,lineWidth);
 }
+
+#if USE_KINECT
+void kinectCapture()
+{
+  cv::Mat kinimg, kinimg_dep;
+  IplImage tmp, tmp_dep;
+  
+  capturekinect.grab();
+  capturekinect.retrieve( kinimg, CV_CAP_OPENNI_BGR_IMAGE );//CV_8UC3
+  capturekinect.retrieve( kinimg_dep, CV_CAP_OPENNI_DEPTH_MAP );//CV_16UC1
+  
+  tmp = kinimg; tmp_dep = kinimg_dep;
+  
+  if( FRAME_WIDTH_LIVE == 640 && FRAME_WIDTH_LIVE == 480 ){
+    IplImage* out = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_8U, 3 );
+    IplImage* out_dep = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_16U, 1 );
+    cvCopy( &tmp, out, NULL );
+    cvCopy( &tmp_dep, out_dep, NULL );
+    frame = out; frame = out_dep;
+  }else{
+    IplImage* out = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_8U, 3 );
+    IplImage* out_dep = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_16U, 1 );
+    cvResize( &tmp, out, CV_INTER_CUBIC );
+    cvResize( &tmp_dep, out_dep, CV_INTER_CUBIC );
+    frame = out; frame_dep = out_dep;
+  }
+  
+}
+#endif
 
 void ThreadCaptureFrame()
 {
@@ -61,8 +100,11 @@ void ThreadCaptureFrame()
     {
       {
 	boost::mutex::scoped_lock lock(m);
+	#if USE_KINECT
+	kinectCapture();
+	#else
 	frame = cvQueryFrame(capture);
-	
+	#endif
       }
       if (!frame) break;
       cvPutText(frame, object_name.c_str(), cvPoint(10,20), &font,cvScalar(0,256,0));
@@ -93,8 +135,15 @@ void ThreadRunDescriptors()
 						 string(param_file), MODEL_TYPE, MAX_IMAGE_SIZE);
   IplImage* img_src = NULL;
   IplImage* img_crop = NULL;
+  IplImage* dep_src = NULL;//For kinect
+  IplImage* dep_crop = NULL;//For kinect
+  
   cvNamedWindow ("Cropped Frame", CV_WINDOW_AUTOSIZE);
   cvNamedWindow("Processed Frame", CV_WINDOW_AUTOSIZE);
+
+  //For pcloudkdes
+  VectorXf top_left(2);
+  
   while ((char)key != 'q')
     {
       //cout<< "Looping" << endl;
@@ -105,6 +154,10 @@ void ThreadRunDescriptors()
 	if (frame != NULL) { 
 	  cvReleaseImage(&img_src);
 	  img_src = cvCloneImage(frame);
+	  if( USE_KINECT_DEP ){
+	    cvReleaseImage(&dep_src);
+	    dep_src = cvCloneImage(frame);
+	  }
 	}
       }
       
@@ -205,6 +258,15 @@ void ThreadRunDescriptors()
 	    img_crop=cvCreateImage( cvSize(bounding_rect.width,bounding_rect.height), IPL_DEPTH_8U, 3 );
 	    cvCopy( img_src, img_crop, NULL );
 	    cvResetImageROI( img_src );
+	    
+	    if( USE_KINECT_DEP ){
+	      cvSetImageROI( dep_src, bounding_rect );
+	      dep_crop = cvCreateImage( cvSize( bounding_rect.width, bounding_rect.height ),
+					IPL_DEPTH_16U, 1 );
+	      cvCopy( dep_src, dep_crop, NULL );
+	      cvResetImageROI( dep_src );
+	    }
+	    
 	  } else {
 	    cv::Rect bounding_rect( (int)(30*frame_ratio), (int)(10*frame_ratio),
 				    (int)(100*frame_ratio), (int)(100*frame_ratio) );
@@ -213,18 +275,34 @@ void ThreadRunDescriptors()
 	    cvCopy( img_src, img_crop, NULL );
 	    cvResetImageROI( img_src );
 	    //img_crop=img_src;
+
+	    if( USE_KINECT_DEP ){
+	      cvSetImageROI( dep_src, bounding_rect );
+	      dep_crop = cvCreateImage( cvSize( bounding_rect.width, bounding_rect.height ),
+					IPL_DEPTH_16U, 1 );
+	      cvCopy( dep_src, dep_crop, NULL );
+	      cvResetImageROI( dep_src );
+	    }
+	    
 	  }
 	  
 	  if (img_crop != NULL)
 	    {
-	      bool result = kdm->Process(imfea2,img_crop);
+	      bool result;
+	      if( !USE_KINECT_DEP )
+		result = kdm->Process(imfea2, img_crop);
+	      else{
+		result = kdm->Process(imfea2, dep_crop);
+		//if( MODEL_TYPE == 4 )
+		//result = kdm->Process(imfea2, dep_crop, top_left);
+	      }
 	      //string object_name = kdm->GetObjectName(imfea2);
 	      object_name = kdm->GetObjectName(imfea2);
 	      cvPutText(img_src, object_name.c_str(), cvPoint(10,20), &font,cvScalar(0,256,0));
 	      
 	      cvShowImage("Cropped Frame", img_crop);
 	      cvShowImage("Processed Frame", img_src);
-	      //			cv::DisplayOverlay("Camera View", object_name.c_str(), 1000);
+	      //cv::DisplayOverlay("Camera View", object_name.c_str(), 1000);
 	      cvReleaseImage(&img_crop);
 	    }
 	}

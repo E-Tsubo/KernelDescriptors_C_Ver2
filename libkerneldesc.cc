@@ -168,14 +168,14 @@ bool KernelDescManager::Process(MatrixXf&imfea, IplImage* image)
   switch (MODEL_TYPE) {
   case 3 :
   case 4 :
-    assert( image->nChannels==1 );  // must be grayscale
+    assert( image->nChannels==1 );//must be grayscale(depth image)
     cvConvertScale(image, img_init,1.0/1000, 0);
     break;
   case 0 :
   case 1 :
   case 2 :
   default :
-    cvConvertScale(image, img_init,1.0/255, 0);
+    cvConvertScale(image, img_init,1.0/255, 0);//normalized
     break;
   }
   //matvarplus_t* modelkdes = load_mat(this->model_file.c_str(), (this->model_file+".mat").c_str());
@@ -228,16 +228,21 @@ bool KernelDescManager::Process(MatrixXf&imfea, IplImage* image)
   MatrixXf feaArr, feaMag, fgrid_y, fgrid_x;
   if (MODEL_TYPE==0 || MODEL_TYPE==3) {
     //cvCvtColor(im, im_temp, CV_RGB2GRAY);
-    GKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, img, this->kdes_params, get_value<float>(this->model_kdes, "modelgkdes->kdes->grid_space"),
+    //In GKDESDense func, image is converted from RGB to Gray.
+    //So, input image is color image.
+    GKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, img, this->kdes_params,
+	       get_value<float>(this->model_kdes, "modelgkdes->kdes->grid_space"),
 	       get_value<float>(this->model_kdes, "modelgkdes->kdes->patch_size"),
-	       get_value<float>(this->model_kdes,"modelgkdes->kdes->low_contrast"));
+	       get_value<float>(this->model_kdes, "modelgkdes->kdes->low_contrast"));
   }
   if (MODEL_TYPE==2) {
-    RGBKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, img, this->kdes_params, get_value<float>(this->model_kdes, "modelrgbkdes->kdes->grid_space"),
+    RGBKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, img, this->kdes_params,
+		 get_value<float>(this->model_kdes, "modelrgbkdes->kdes->grid_space"),
 		 get_value<float>(this->model_kdes, "modelrgbkdes->kdes->patch_size"));
   }
   if (MODEL_TYPE==4) {
-    SpinKDESDense(feaArr, fgrid_y, fgrid_x, img, this->top_left, this->kdes_params, get_value<float>(this->model_kdes, "modelspinkdes->kdes->grid_space"),
+    SpinKDESDense(feaArr, fgrid_y, fgrid_x, img, this->top_left, this->kdes_params,
+		  get_value<float>(this->model_kdes, "modelspinkdes->kdes->grid_space"),
 		  get_value<float>(this->model_kdes, "modelspinkdes->kdes->patch_size"));
   }
   exec_time = timer.get();
