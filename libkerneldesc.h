@@ -4,7 +4,7 @@
 //#define MODEL_TYPE 2                 // color    (not normal)
 //#define MODEL_TYPE 3                 // gradient (depth)
 //#define MODEL_TYPE 4                 // spin     (depth)
-static unsigned int MODEL_TYPE=0;
+static unsigned int MODEL_TYPE=3;
 static unsigned int USE_MODEL_TYPE=MODEL_TYPE;
 
 #define PI 3.14159265 

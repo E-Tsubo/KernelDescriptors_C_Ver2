@@ -66,17 +66,17 @@ string KernelDescManager::GetObjectName(MatrixXf& imfea)
   std::cout << "MODELTYPE:" << MODEL_TYPE << std::endl;
   
   MatrixXf svmW;
-  if( MODEL_TYPE == 0 ){
+  if( MODEL_TYPE == 0 || MODEL_TYPE == 3 ){
     get_matrix(svmW, this->model_kdes,"modelgkdes->svm->w");
   }else if( MODEL_TYPE == 2 ){
     get_matrix(svmW, this->model_kdes,"modelrgbkdes->svm->w");
   }
   MatrixXf svmMinValue;
   MatrixXf svmMaxValue;
-  if( MODEL_TYPE == 0 ){
+  if( MODEL_TYPE == 0 || MODEL_TYPE == 3 ){
     get_matrix(svmMaxValue, this->model_kdes,"modelgkdes->svm->maxvalue"); 
     get_matrix(svmMinValue, this->model_kdes,"modelgkdes->svm->minvalue");
-	}else if( MODEL_TYPE == 2 ){
+  }else if( MODEL_TYPE == 2 ){
     get_matrix(svmMaxValue, this->model_kdes,"modelrgbkdes->svm->maxvalue"); 
     get_matrix(svmMinValue, this->model_kdes,"modelrgbkdes->svm->minvalue");
   }

@@ -25,7 +25,7 @@ const char* param_file = param_files[MODEL_TYPE];
 #define USE_KINECT 1
 #ifdef USE_KINECT
   #define USE_KINECT_RGB 1
-  #define USE_KINECT_DEP 0
+  #define USE_KINECT_DEP 1
 #endif
 
 //either USE_SELFCUT or USE_GRABCUT
@@ -144,6 +144,8 @@ void ThreadRunDescriptors()
   
   cvNamedWindow ("Cropped Frame", CV_WINDOW_AUTOSIZE);
   cvNamedWindow("Processed Frame", CV_WINDOW_AUTOSIZE);
+  if( USE_KINECT_DEP )
+    cvNamedWindow("Depth Frame", CV_WINDOW_AUTOSIZE);
 
   //For pcloudkdes
   VectorXf top_left(2);
@@ -160,7 +162,7 @@ void ThreadRunDescriptors()
 	  img_src = cvCloneImage(frame);
 	  if( USE_KINECT_DEP ){
 	    cvReleaseImage(&dep_src);
-	    dep_src = cvCloneImage(frame);
+	    dep_src = cvCloneImage(frame_dep);
 	  }
 	}
       }
@@ -168,10 +170,12 @@ void ThreadRunDescriptors()
       if (img_src != NULL)
 	{
 	  if (run_self_cut) {
-	    //
-	    const int cut_width = 100;
-	    const int cut_height = 150;
-	    //
+	    //RGB
+	    //const int cut_width = 100;
+	    //const int cut_height = 150;
+	    //DEPTH
+	    const int cut_width = 50;
+	    const int cut_height = 80;
 	    	    
 	    cv::Mat image( img_src );
 	    int xcenter = (int)(img_src->width/2);
@@ -183,6 +187,14 @@ void ThreadRunDescriptors()
 	    img_crop=cvCreateImage( cvSize(bounding_rect.width,bounding_rect.height), IPL_DEPTH_8U, 3 );
 	    cvCopy( img_src, img_crop, NULL );
 	    cvResetImageROI( img_src );
+	    if (USE_KINECT_DEP) {
+	      cvSetImageROI( dep_src, bounding_rect );
+	      dep_crop=cvCreateImage( cvSize(bounding_rect.width,bounding_rect.height), IPL_DEPTH_16U, 1 );
+	      cvCopy( dep_src, dep_crop, NULL );
+	      cvResetImageROI( dep_src );
+
+	      top_left[0] = bounding_rect.x; top_left[1] = bounding_rect.y;
+	    }
 	    
 	    //For Image View, draw rectangle which shows segmentation range.
 	    cvRectangle( img_src, cvPoint( xcenter-cut_width/2, ycenter-cut_height/2 ),
@@ -291,6 +303,8 @@ void ThreadRunDescriptors()
 					IPL_DEPTH_16U, 1 );
 	      cvCopy( dep_src, dep_crop, NULL );
 	      cvResetImageROI( dep_src );
+
+	      top_left[0] = bounding_rect.x; top_left[1] = bounding_rect.y;
 	    }
 	    
 	  } else {
@@ -308,6 +322,8 @@ void ThreadRunDescriptors()
 					IPL_DEPTH_16U, 1 );
 	      cvCopy( dep_src, dep_crop, NULL );
 	      cvResetImageROI( dep_src );
+
+	      top_left[0] = bounding_rect.x; top_left[1] = bounding_rect.y;
 	    }
 	    
 	  }
@@ -315,12 +331,13 @@ void ThreadRunDescriptors()
 	  if (img_crop != NULL)
 	    {
 	      bool result;
-	      if( !USE_KINECT_DEP )
+	      if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
 		result = kdm->Process(imfea2, img_crop);
-	      else{
-		result = kdm->Process(imfea2, dep_crop);
-		//if( MODEL_TYPE == 4 )
-		//result = kdm->Process(imfea2, dep_crop, top_left);
+	      else if( MODEL_TYPE == 3 || MODEL_TYPE == 4 ){
+		if( MODEL_TYPE == 4 )
+		  result = kdm->Process(imfea2, dep_crop, top_left);
+		else
+		  result = kdm->Process(imfea2, dep_crop);
 	      }
 	      //string object_name = kdm->GetObjectName(imfea2);
 	      object_name = kdm->GetObjectName(imfea2);
@@ -328,6 +345,8 @@ void ThreadRunDescriptors()
 	      
 	      cvShowImage("Cropped Frame", img_crop);
 	      cvShowImage("Processed Frame", img_src);
+	      if( USE_KINECT_DEP )
+		cvShowImage("Depth Frame", dep_src);
 	      //cv::DisplayOverlay("Camera View", object_name.c_str(), 1000);
 	      cvReleaseImage(&img_crop);
 	    }
