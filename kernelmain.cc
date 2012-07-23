@@ -22,10 +22,10 @@ const char* model_file = model_files[MODEL_TYPE];
 const char* model_var = model_vars[MODEL_TYPE];
 const char* param_file = param_files[MODEL_TYPE];
 
-#define USE_KINECT 1
+#define USE_KINECT 0
 #ifdef USE_KINECT
   #define USE_KINECT_RGB 1
-  #define USE_KINECT_DEP 1
+  #define USE_KINECT_DEP 0
 #endif
 
 //either USE_SELFCUT or USE_GRABCUT
@@ -39,6 +39,7 @@ const char* param_file = param_files[MODEL_TYPE];
 #define FRAME_WIDTH_LIVE 160*2
 #define FRAME_HEIGHT_LIVE 120*2
 
+bool run_debug_mode=false;
 bool run_self_cut=false;
 bool run_grab_cut=false;
 string object_name;
@@ -171,12 +172,12 @@ void ThreadRunDescriptors()
 	{
 	  if (run_self_cut) {
 	    //RGB
-	    //const int cut_width = 100;
-	    //const int cut_height = 150;
+	    const int cut_width = 100;
+	    const int cut_height = 150;
 	    //DEPTH
-	    const int cut_width = 50;
-	    const int cut_height = 80;
-	    	    
+	    //const int cut_width = 50;
+	    //const int cut_height = 80;
+	    
 	    cv::Mat image( img_src );
 	    int xcenter = (int)(img_src->width/2);
 	    int ycenter = (int)(img_src->height/2);
@@ -400,21 +401,28 @@ void DataSetDemo()
     {
       MatrixXf imfea2;
       VectorXf top_left(2);
-      IplImage* img_init = cvLoadImage(string("./testim/" + *itr).c_str(),CV_LOAD_IMAGE_ANYCOLOR);
+      IplImage* img_init;
+      if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
+	img_init = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYCOLOR);
+      else
+	img_init = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYDEPTH );
       bool result;
       if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
 	result = kdm->Process(imfea2,img_init);
       else if( MODEL_TYPE == 3 )
 	result = kdm->Process(imfea2,img_init);
       else if( MODEL_TYPE == 4 ){
-	top_left[0] == 267; top_left[1] = 167;//TODO:Load loc.txt file.
+	top_left[0] = 317; top_left[1] = 169;//TODO:Load loc.txt file.
 	result = kdm->Process(imfea2,img_init, top_left);
       }
       //cvShowImage("ProcessedImage", frame);
       string object_name = kdm->GetObjectName(imfea2);
+      std::cout << "(ImagePath:" << string(*itr).c_str() << ")" << std::endl << std::endl;
       cvPutText(img_init, object_name.c_str(), cvPoint(30,30), &font ,cvScalar(0,256,0));
-      cvShowImage("Processed Image", img_init);
-      char c = cvWaitKey(0);
+      if( !run_debug_mode ){
+	cvShowImage("Processed Image", img_init);
+	char c = cvWaitKey(0);
+      }
       cvReleaseImage(&img_init);
     }	
 }
@@ -426,11 +434,12 @@ int main(int argc, char* argv[]) {
     {
       cout << "Enter '1' for camera demo (full image)," << endl
 	   << "      '2' for camera demo (w/ GrabCut)," << endl
-	   << "      '3' for demo with image dataset"   << endl
-	   << "      '4' for camera demo (self cut)"    << endl;
+	   << "      '3' for demo with image dataset,"   << endl
+	   << "      '4' for debug with image dataset,"  << endl
+	   << "      '5' for camera demo (self cut)"    << endl;
       cin >> opt;
       cout << "Opt: " << opt << endl;
-      if (opt==1 || opt==2 || opt==4)
+      if (opt==1 || opt==2 || opt==5)
 	{
 	  
 	  // On Windows: change camera resolution only works in the main thread
@@ -447,7 +456,7 @@ int main(int argc, char* argv[]) {
 	  if (opt==2) {
 	    run_grab_cut=true;
 	  }
-	  if (opt==4) {
+	  if (opt==5) {
 	    run_self_cut=true;
 	  }
 	  boost::thread workerThread(&ThreadCaptureFrame);
@@ -456,8 +465,10 @@ int main(int argc, char* argv[]) {
 	  workerThread.join();
 	  cout << "Starting descriptor thread" << endl;
 	  descriptorThread.join();
-	} else if (opt == 3)
+	} else if (opt == 3 || opt == 4)
 	{
+	  if (opt == 4 )
+	    run_debug_mode = true;
 	  DataSetDemo();
 	} else 
 	{
