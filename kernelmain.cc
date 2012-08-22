@@ -22,10 +22,10 @@ const char* model_file = model_files[MODEL_TYPE];
 const char* model_var = model_vars[MODEL_TYPE];
 const char* param_file = param_files[MODEL_TYPE];
 
-#define USE_KINECT 0
+#define USE_KINECT 1
 #ifdef USE_KINECT
   #define USE_KINECT_RGB 1
-  #define USE_KINECT_DEP 0
+  #define USE_KINECT_DEP 1
 #endif
 
 //either USE_SELFCUT or USE_GRABCUT
@@ -36,8 +36,8 @@ const char* param_file = param_files[MODEL_TYPE];
   #include <opencv2/imgproc/imgproc.hpp>
 #endif
 
-#define FRAME_WIDTH_LIVE 160*2
-#define FRAME_HEIGHT_LIVE 120*2
+#define FRAME_WIDTH_LIVE 160*4
+#define FRAME_HEIGHT_LIVE 120*4
 
 bool run_debug_mode=false;
 bool run_self_cut=false;
@@ -75,21 +75,19 @@ void kinectCapture()
   capturekinect.retrieve( kinimg_dep, CV_CAP_OPENNI_DEPTH_MAP );//CV_16UC1
   
   tmp = kinimg; tmp_dep = kinimg_dep;
-  
-  if( FRAME_WIDTH_LIVE == 640 && FRAME_WIDTH_LIVE == 480 ){
+  //if( FRAME_WIDTH_LIVE == 640 && FRAME_WIDTH_LIVE == 480 ){
     IplImage* out = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_8U, 3 );
     IplImage* out_dep = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_16U, 1 );
     cvCopy( &tmp, out, NULL );
     cvCopy( &tmp_dep, out_dep, NULL );
-    frame = out; frame = out_dep;
-  }else{
-    IplImage* out = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_8U, 3 );
-    IplImage* out_dep = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_16U, 1 );
-    cvResize( &tmp, out, CV_INTER_CUBIC );
-    cvResize( &tmp_dep, out_dep, CV_INTER_CUBIC );
     frame = out; frame_dep = out_dep;
-  }
-  
+    //}else{
+    //IplImage* out = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_8U, 3 );
+    //IplImage* out_dep = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_16U, 1 );
+    //cvResize( &tmp, out, CV_INTER_CUBIC );
+    //cvResize( &tmp_dep, out_dep, CV_INTER_CUBIC );
+    //frame = out; frame_dep = out_dep;
+    //}
 }
 #endif
 
@@ -172,11 +170,14 @@ void ThreadRunDescriptors()
 	{
 	  if (run_self_cut) {
 	    //RGB
-	    const int cut_width = 100;
-	    const int cut_height = 150;
-	    //DEPTH
+	    //const int cut_width = 100;
+	    //const int cut_height = 150;
+	    //DEPTH 320x280
 	    //const int cut_width = 50;
 	    //const int cut_height = 80;
+	    //DEPTH 640x480
+	    const int cut_width = 70;
+	    const int cut_height = 120;
 	    
 	    cv::Mat image( img_src );
 	    int xcenter = (int)(img_src->width/2);
@@ -346,8 +347,12 @@ void ThreadRunDescriptors()
 	      
 	      cvShowImage("Cropped Frame", img_crop);
 	      cvShowImage("Processed Frame", img_src);
-	      if( USE_KINECT_DEP )
-		cvShowImage("Depth Frame", dep_src);
+	      if( USE_KINECT_DEP ){
+		cv::Mat tmp( dep_src ); cv::Mat depthshow;
+		tmp.convertTo(depthshow, CV_8U, 256.0/4096.0, 0);
+		imshow("Depth Frame", depthshow);
+		//cvShowImage("Depth Frame", dep_src);
+	      }
 	      //cv::DisplayOverlay("Camera View", object_name.c_str(), 1000);
 	      cvReleaseImage(&img_crop);
 	    }
