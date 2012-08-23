@@ -1,11 +1,19 @@
 //#define EIGEN_DEFAULT_TO_ROW_MAJOR
 
 //#define MODEL_TYPE 0                 // gradient
+//#define MODEL_TYPE 1                 // bpkdes   (not supported now)
 //#define MODEL_TYPE 2                 // color    (not normal)
 //#define MODEL_TYPE 3                 // gradient (depth)
 //#define MODEL_TYPE 4                 // spin     (depth)
+
 static unsigned int MODEL_TYPE=4;
 static unsigned int USE_MODEL_TYPE=MODEL_TYPE;
+//For Combine kdes if MODEL_TYPE is -2.
+static unsigned int USE_COMBINE_MODEL=1;
+static int MAX_COMBINE_MODEL_TYPE=5;
+static unsigned int MODEL_FLAG[5]={ 0, 0, 1, 1, 1 };//1 is used. 0 is not used.
+static unsigned int COMBINE_TYPE;
+
 
 #define PI 3.14159265 
 #include <opencv/cv.h>
@@ -20,12 +28,14 @@ static unsigned int USE_MODEL_TYPE=MODEL_TYPE;
 #include <vector>
 #include <iomanip>
 #include <set>
+#include <boost/thread.hpp>
 #include "benchmark-utils.hpp"
 #include "mattest.h"
 using namespace std;
 using namespace MatIO;
 using namespace Eigen;
 
+static boost::mutex mutex;
 
 #ifndef LIBKERNELDESC_H
 #define LIBKERNELDESC_H
@@ -364,11 +374,21 @@ static MatrixXf EvalKernelExp_Img3(const MatrixXf& im1, const MatrixXf& im2, con
 static void GKDESDense(MatrixXf& feaArr, MatrixXf& feaMag, MatrixXf& fgrid_y, MatrixXf& fgrid_x, IplImage* im, matvarplus_t* kdes_params, int grid_space, int patch_size, float low_contrast) {
 
 	MatrixXf gpoints;
-	get_matrix(gpoints, kdes_params, "kpcaGDes->gpoints");
 	MatrixXf spoints;
-	get_matrix(spoints, kdes_params, "kpcaGDes->spoints");
 	MatrixXf kparam;
-	get_matrix(kparam,kdes_params, "kpcaGDes->kparam");
+	if( USE_COMBINE_MODEL=1 ){
+	  {
+	    boost::mutex::scoped_lock lock(mutex);
+	    get_matrix(gpoints, kdes_params, "kpcaGDes->gpoints");
+	    get_matrix(spoints, kdes_params, "kpcaGDes->spoints");
+	    get_matrix(kparam,kdes_params, "kpcaGDes->kparam");
+	  }
+	}else{
+	  get_matrix(gpoints, kdes_params, "kpcaGDes->gpoints");
+	  get_matrix(spoints, kdes_params, "kpcaGDes->spoints");
+	  get_matrix(kparam,kdes_params, "kpcaGDes->kparam");
+	}
+	
 	float sigma_edge = 0.8; // this wasn't set initially so I'm setting my own
 	// make sure image is greyscale
 	// note the RGB2GRAY is different OpenCV vs matlab
@@ -547,14 +567,23 @@ static void RGBKDESDense(MatrixXf& feaArr, MatrixXf& feaMag, MatrixXf& fgrid_y, 
 			 IplImage* im, matvarplus_t* kdes_params, int grid_space, int patch_size)
 {
   const float low_contrast = 0;
-  
-  MatrixXf gpoints;
-  get_matrix(gpoints, kdes_params, "kpcaRGBDes->rgbpoints");
-  MatrixXf spoints;
-  get_matrix(spoints, kdes_params, "kpcaRGBDes->spoints");
-  MatrixXf kparam; 
-  get_matrix(kparam, kdes_params, "kpcaRGBDes->kparam");
 
+  MatrixXf gpoints;
+  MatrixXf spoints;
+  MatrixXf kparam; 
+  if( USE_COMBINE_MODEL=1 ){
+    {
+      boost::mutex::scoped_lock lock(mutex);
+      get_matrix(gpoints, kdes_params, "kpcaRGBDes->rgbpoints");
+      get_matrix(spoints, kdes_params, "kpcaRGBDes->spoints");
+      get_matrix(kparam, kdes_params, "kpcaRGBDes->kparam");
+    }
+  }else{
+    get_matrix(gpoints, kdes_params, "kpcaRGBDes->rgbpoints");
+    get_matrix(spoints, kdes_params, "kpcaRGBDes->spoints");
+    get_matrix(kparam, kdes_params, "kpcaRGBDes->kparam");
+  }
+  
   int img_h = im->height;
   int img_w = im->width;
 
@@ -599,7 +628,6 @@ static void RGBKDESDense(MatrixXf& feaArr, MatrixXf& feaMag, MatrixXf& fgrid_y, 
   imB_mat.transposeInPlace();
   
   //cout << "call kernel img3" << endl;
-  
   MatrixXf kparam_g = kparam.block(0,0,1,kparam.cols()-2);
   MatrixXf im_k = EvalKernelExp_Img3(imR_mat,imG_mat,imB_mat,gpoints,kparam_g);
   
@@ -752,19 +780,35 @@ static void pcnormal(const MatrixXf& pcloud_x, const MatrixXf& pcloud_y, const M
 static void SpinKDESDense(MatrixXf& feaArr, MatrixXf& fgrid_y, MatrixXf& fgrid_x, IplImage* im, const MatrixXf& top_left, matvarplus_t* kdes_params, int grid_space, int patch_size, double normal_thresh=0.01, double normal_window=5) {
 
 	MatrixXf npoints;
-	get_matrix(npoints, kdes_params, "kpcaSpinDes->npoints");
 	MatrixXf spoints;
-	get_matrix(spoints, kdes_params, "kpcaSpinDes->spoints");
 	MatrixXf kparam;
-	get_matrix(kparam,kdes_params, "kpcaSpinDes->kparam");
+	float radius;
+	int maxsample;
+	int minsample;
+	MatrixXf kparam_eigen;
+	if( USE_COMBINE_MODEL=1 ){
+	  {
+	    boost::mutex::scoped_lock lock(mutex);
+	    get_matrix(npoints, kdes_params, "kpcaSpinDes->npoints");
+	    get_matrix(spoints, kdes_params, "kpcaSpinDes->spoints");
+	    get_matrix(kparam,kdes_params, "kpcaSpinDes->kparam");
+	    
+	    radius = get_value<float>(kdes_params,"kpcaSpinDes->radius");
+	    maxsample = (int) get_value<float>(kdes_params,"kpcaSpinDes->maxsample");
+	    minsample = (int) get_value<float>(kdes_params,"kpcaSpinDes->minsample");
+	    get_matrix(kparam_eigen, kdes_params, "kpcaSpinDes->eigvectors");
+	  }
+	}else{
+	  get_matrix(npoints, kdes_params, "kpcaSpinDes->npoints");
+	  get_matrix(spoints, kdes_params, "kpcaSpinDes->spoints");
+	  get_matrix(kparam,kdes_params, "kpcaSpinDes->kparam");
 
-	float radius = get_value<float>(kdes_params,"kpcaSpinDes->radius");
-	int maxsample = (int) get_value<float>(kdes_params,"kpcaSpinDes->maxsample");
-	int minsample = (int) get_value<float>(kdes_params,"kpcaSpinDes->minsample");
-
-        MatrixXf kparam_eigen;
-        get_matrix(kparam_eigen, kdes_params, "kpcaSpinDes->eigvectors");
-
+	  radius = get_value<float>(kdes_params,"kpcaSpinDes->radius");
+	  maxsample = (int) get_value<float>(kdes_params,"kpcaSpinDes->maxsample");
+	  minsample = (int) get_value<float>(kdes_params,"kpcaSpinDes->minsample");
+	  get_matrix(kparam_eigen, kdes_params, "kpcaSpinDes->eigvectors");
+	}
+	
 	// convert depth image to (explicit) point cloud
 	MatrixXf im_mat = MatrixXf::MapAligned((float*)im->imageData, im->width,im->height);
 	im_mat.transposeInPlace();
@@ -1022,7 +1066,10 @@ public:
 	//bool Process(MatrixXf& imfea, string image_path);
 	bool Process(MatrixXf&imfea, IplImage* image);
 	bool Process(MatrixXf&imfea, IplImage* image, const VectorXf& top_left);
+	bool ProcessCombine(MatrixXf &imfea, IplImage* image, IplImage* depimage, const VectorXf& top_left);
+	void threadKDES( MatrixXf *fea, IplImage* img, IplImage* dep, int flag );
 	string GetObjectName(MatrixXf& imfea);
+	string GetObjectNameCombine(MatrixXf& imfea);
 	int GetObjectName_liblinear(MatrixXf& imfea);
 	void PrintModelList();
 private:
@@ -1039,5 +1086,23 @@ private:
 	unsigned int MODEL_TYPE;
 	int MAX_IMAGE_SIZE;
 	VectorXf top_left;
+
+	//Combine Kdes
+	string commodel_name[5];
+	string commodel_file[5];
+	string commodel_var[5];
+	string comparam_file[5];
+	string commodel_dir[5];
+	string comparam_dir[5];
+	string commodel_kdes_treeroot;
+	//string comlinearmodel_file;
+	matvarplus_t *commodel_kdes[5], *comkdes_params[5];
+	matvarplus_t *finalmodel_kdes;
+	vector<string>* commodel_list;
+	unsigned int comMODEL_TYPE;
+	int USE_TYPE_COUNT;
+	//int MAX_IMAGE_SIZE;
+	VectorXf comtop_left;
+	
 };
 #endif

@@ -136,8 +136,8 @@ void ThreadRunDescriptors()
   int key = 0;
   KernelDescManager* kdm = new KernelDescManager(string(model_name), string(model_file), string(model_var),
 						 string(param_file), MODEL_TYPE, MAX_IMAGE_SIZE);
-  IplImage* img_src = NULL;
-  IplImage* img_crop = NULL;
+  IplImage* img_src = NULL;//IEEE or Kinect
+  IplImage* img_crop = NULL;//IEEE or Kinect
   IplImage* dep_src = NULL;//For kinect
   IplImage* dep_crop = NULL;//For kinect
   
@@ -333,16 +333,25 @@ void ThreadRunDescriptors()
 	  if (img_crop != NULL)
 	    {
 	      bool result;
-	      if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
-		result = kdm->Process(imfea2, img_crop);
-	      else if( MODEL_TYPE == 3 || MODEL_TYPE == 4 ){
-		if( MODEL_TYPE == 4 )
-		  result = kdm->Process(imfea2, dep_crop, top_left);
-		else
-		  result = kdm->Process(imfea2, dep_crop);
+	      if( USE_COMBINE_MODEL == 1 ){
+		result = kdm->ProcessCombine(imfea2, img_crop, dep_crop, top_left);
+	      }else{
+		
+		if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
+		  result = kdm->Process(imfea2, img_crop);
+		else if( MODEL_TYPE == 3 || MODEL_TYPE == 4 ){
+		  if( MODEL_TYPE == 4 )
+		    result = kdm->Process(imfea2, dep_crop, top_left);
+		  else
+		    result = kdm->Process(imfea2, dep_crop);
+		}
+		
 	      }
 	      //string object_name = kdm->GetObjectName(imfea2);
-	      object_name = kdm->GetObjectName(imfea2);
+	      if( USE_COMBINE_MODEL == 1 )
+		object_name = kdm->GetObjectNameCombine(imfea2);
+	      else
+		object_name = kdm->GetObjectName(imfea2);
 	      cvPutText(img_src, object_name.c_str(), cvPoint(10,20), &font,cvScalar(0,256,0));
 	      
 	      cvShowImage("Cropped Frame", img_crop);
