@@ -356,6 +356,10 @@ bool KernelDescManager::ProcessCombine(MatrixXf&imfea, IplImage* image, IplImage
   if (!img_init && !dep_init)
     printf("Image is unavailable!\n");
   
+  assert( depimage->nChannels==1 );//must be grayscale(depth image)
+  cvConvertScale(depimage, dep_init,1.0/1000, 0);
+  cvConvertScale(image, img_init,1.0/255, 0);//normalized
+  /*
   switch (MODEL_TYPE) {
   case 3 ://For Depth KDES
   case 4 :
@@ -369,6 +373,7 @@ bool KernelDescManager::ProcessCombine(MatrixXf&imfea, IplImage* image, IplImage
     cvConvertScale(image, img_init,1.0/255, 0);//normalized
     break;
   }
+  */
   
   IplImage* img, *dep;
   img = cvCreateImage( cvSize( img_init->width, img_init->height ), IPL_DEPTH_32F, img_init->nChannels );
@@ -383,11 +388,19 @@ bool KernelDescManager::ProcessCombine(MatrixXf&imfea, IplImage* image, IplImage
   timer.start();
   
   MatrixXf feaArr[MAX_COMBINE_MODEL_TYPE];
+  IplImage *kdesimg[MAX_COMBINE_MODEL_TYPE], *kdesdep[MAX_COMBINE_MODEL_TYPE];
   
   boost::thread* th[MAX_COMBINE_MODEL_TYPE];
   for( int i = 0; i < MAX_COMBINE_MODEL_TYPE; i++ ){
-    if( MODEL_FLAG[i] == 1 )
-      th[i] = new boost::thread( boost::bind( &KernelDescManager::threadKDES, this, &feaArr[i], img, dep, i ) );
+    if( MODEL_FLAG[i] == 1 ){
+      
+      kdesimg[i] = cvCreateImage( cvSize( img_w, img_h ), IPL_DEPTH_32F, img->nChannels );
+      kdesdep[i] = cvCreateImage( cvSize( dep_w, dep_h ), IPL_DEPTH_32F, dep->nChannels );
+      cvCopy( img, kdesimg[i], NULL );
+      cvCopy( dep, kdesdep[i], NULL );
+
+      th[i] = new boost::thread( boost::bind( &KernelDescManager::threadKDES, this, &feaArr[i], kdesimg[i], kdesdep[i], i ) );
+    }
   }
   
   for( int i = 0; i < MAX_COMBINE_MODEL_TYPE; i++ ){
@@ -396,8 +409,12 @@ bool KernelDescManager::ProcessCombine(MatrixXf&imfea, IplImage* image, IplImage
   }
   
   for( int i = 0; i < MAX_COMBINE_MODEL_TYPE; i++ ){
-    if( MODEL_FLAG[i] == 1 )
+    if( MODEL_FLAG[i] == 1 ){
       delete th[i];
+
+      cvReleaseImage(&kdesimg[i]);
+      cvReleaseImage(&kdesdep[i]);
+    }
   }
   
   //統合フェーズ imfea <--kakunou
