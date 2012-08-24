@@ -516,106 +516,110 @@ void KernelDescManager::threadKDES( MatrixXf *fea, IplImage* img, IplImage* dep,
     std::cout << "GKDES 0, start..." << std::endl; fflush(stdout);
     MatrixXf feaArr, feaMag, fgrid_y, fgrid_x;
     int grid_space, patch_size; float low_contrast;
+    MatrixXf emkWords, emkG, emkPyramid; float kparam;
     {
       boost::mutex::scoped_lock lock(mutex);
       grid_space = (int)get_value<float>(this->commodel_kdes[0], "modelgkdes->kdes->grid_space");
       patch_size = (int)get_value<float>(this->commodel_kdes[0], "modelgkdes->kdes->patch_size");
       low_contrast = get_value<float>(this->commodel_kdes[0], "modelgkdes->kdes->low_contrast");
+      
+      get_matrix(emkWords, this->commodel_kdes[0], (string(model_vars[0])+"->emk->words").c_str());
+      get_matrix(emkG, this->commodel_kdes[0], (string(model_vars[0])+"->emk->G").c_str());
+      get_matrix(emkPyramid, this->commodel_kdes[0], (string(model_vars[0])+"->emk->pyramid").c_str());
+
+      kparam = get_value<float>(this->commodel_kdes[0], (string(model_vars[0])+"->emk->kparam").c_str());
     }
     GKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, img, this->comkdes_params[0],
 	       grid_space,
 	       patch_size,
 	       low_contrast);
     
-    MatrixXf emkWords;
-    get_matrix(emkWords, this->commodel_kdes[0], (string(model_vars[0])+"->emk->words").c_str());
-    MatrixXf emkG;
-    get_matrix(emkG, this->commodel_kdes[0], (string(model_vars[0])+"->emk->G").c_str());
-    MatrixXf emkPyramid;
-    get_matrix(emkPyramid, this->commodel_kdes[0], (string(model_vars[0])+"->emk->pyramid").c_str());
     CKSVDEMK(*fea, feaArr, feaMag, fgrid_y, fgrid_x, img->height, img->width,
 	     emkWords,
 	     emkG,
 	     emkPyramid,
-	     get_value<float>(this->commodel_kdes[0], (string(model_vars[0])+"->emk->kparam").c_str()) );
+	     kparam);
     std::cout << "GKDES 0, End now." << std::endl; fflush(stdout);
     return;
   }else if (flag==2) {
     std::cout << "RGBKDES 2, start..." << std::endl; fflush(stdout);
     MatrixXf feaArr, feaMag, fgrid_y, fgrid_x;
     int grid_space, patch_size;
+    MatrixXf emkWords, emkG, emkPyramid; float kparam;
     {
       boost::mutex::scoped_lock lock(mutex);
       grid_space = (int)get_value<float>(this->commodel_kdes[2], "modelrgbkdes->kdes->grid_space");
       patch_size = (int)get_value<float>(this->commodel_kdes[2], "modelrgbkdes->kdes->patch_size");
+
+      get_matrix(emkWords, this->commodel_kdes[2], (string(model_vars[2])+"->emk->words").c_str());
+      get_matrix(emkG, this->commodel_kdes[2], (string(model_vars[2])+"->emk->G").c_str());
+      get_matrix(emkPyramid, this->commodel_kdes[2], (string(model_vars[2])+"->emk->pyramid").c_str());
+
+      kparam = get_value<float>(this->commodel_kdes[2], (string(model_vars[2])+"->emk->kparam").c_str());
     }
     RGBKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, img, this->comkdes_params[2],
 		 grid_space, patch_size );
     
-    MatrixXf emkWords;
-    get_matrix(emkWords, this->commodel_kdes[2], (string(model_vars[2])+"->emk->words").c_str());
-    MatrixXf emkG;
-    get_matrix(emkG, this->commodel_kdes[2], (string(model_vars[2])+"->emk->G").c_str());
-    MatrixXf emkPyramid;
-    get_matrix(emkPyramid, this->commodel_kdes[2], (string(model_vars[2])+"->emk->pyramid").c_str());
     CKSVDEMK(*fea, feaArr, feaMag, fgrid_y, fgrid_x, img->height, img->width,
 	     emkWords,
 	     emkG,
 	     emkPyramid,
-	     get_value<float>(this->commodel_kdes[2], (string(model_vars[2])+"->emk->kparam").c_str()) );
+	     kparam);
     std::cout << "RGBKDES 2, End now." << std::endl; fflush(stdout);
     return;
   }else if (flag==3) {
     std::cout << "GKDES 3, start..." << std::endl; fflush(stdout);
     MatrixXf feaArr, feaMag, fgrid_y, fgrid_x;
     int grid_space, patch_size; float low_contrast;
+    MatrixXf emkWords, emkG, emkPyramid; float kparam;
     {
       boost::mutex::scoped_lock lock(mutex);
       grid_space = (int)get_value<float>(this->commodel_kdes[3], "modelgkdes->kdes->grid_space");
       patch_size = (int)get_value<float>(this->commodel_kdes[3], "modelgkdes->kdes->patch_size");
       low_contrast = get_value<float>(this->commodel_kdes[3], "modelgkdes->kdes->low_contrast");
+
+      get_matrix(emkWords, this->commodel_kdes[3], (string(model_vars[3])+"->emk->words").c_str());
+      get_matrix(emkG, this->commodel_kdes[3], (string(model_vars[3])+"->emk->G").c_str());
+      get_matrix(emkPyramid, this->commodel_kdes[3], (string(model_vars[3])+"->emk->pyramid").c_str());
+
+      kparam = get_value<float>(this->commodel_kdes[3], (string(model_vars[3])+"->emk->kparam").c_str());
     }
     GKDESDense(feaArr, feaMag, fgrid_y, fgrid_x, dep, this->comkdes_params[3],
 	       grid_space,
 	       patch_size,
 	       low_contrast);
     
-    MatrixXf emkWords;
-    get_matrix(emkWords, this->commodel_kdes[3], (string(model_vars[3])+"->emk->words").c_str());
-    MatrixXf emkG;
-    get_matrix(emkG, this->commodel_kdes[3], (string(model_vars[3])+"->emk->G").c_str());
-    MatrixXf emkPyramid;
-    get_matrix(emkPyramid, this->commodel_kdes[3], (string(model_vars[3])+"->emk->pyramid").c_str());
     CKSVDEMK(*fea, feaArr, feaMag, fgrid_y, fgrid_x, dep->height, dep->width,
 	     emkWords,
 	     emkG,
 	     emkPyramid,
-	     get_value<float>(this->commodel_kdes[3], (string(model_vars[3])+"->emk->kparam").c_str()) );
+	     kparam);
     std::cout << "GKDES 3, End now." << std::endl; fflush(stdout);
     return;
   }else if (flag==4) {
     std::cout << "SpinKDES 4, start..." << std::endl; fflush(stdout);
     MatrixXf feaArr, feaMag, fgrid_y, fgrid_x;
     int grid_space, patch_size;
+    MatrixXf emkWords, emkG, emkPyramid; float kparam;
     {
       boost::mutex::scoped_lock lock(mutex);
       grid_space = (int)get_value<float>(this->commodel_kdes[4], "modelspinkdes->kdes->grid_space");
       patch_size = (int)get_value<float>(this->commodel_kdes[4], "modelspinkdes->kdes->patch_size");
+
+      get_matrix(emkWords, this->commodel_kdes[4], (string(model_vars[4])+"->emk->words").c_str());
+      get_matrix(emkG, this->commodel_kdes[4], (string(model_vars[4])+"->emk->G").c_str());
+      get_matrix(emkPyramid, this->commodel_kdes[4], (string(model_vars[4])+"->emk->pyramid").c_str());
+
+      kparam = get_value<float>(this->commodel_kdes[4], (string(model_vars[4])+"->emk->kparam").c_str());
     }
     SpinKDESDense(feaArr, fgrid_y, fgrid_x, dep, this->comtop_left, this->comkdes_params[4],
 		  grid_space, patch_size );
     
-    MatrixXf emkWords;
-    get_matrix(emkWords, this->commodel_kdes[4], (string(model_vars[4])+"->emk->words").c_str());
-    MatrixXf emkG;
-    get_matrix(emkG, this->commodel_kdes[4], (string(model_vars[4])+"->emk->G").c_str());
-    MatrixXf emkPyramid;
-    get_matrix(emkPyramid, this->commodel_kdes[4], (string(model_vars[4])+"->emk->pyramid").c_str());
     CKSVDEMK(*fea, feaArr, feaMag, fgrid_y, fgrid_x, dep->height, dep->width,
 	     emkWords,
 	     emkG,
 	     emkPyramid,
-	     get_value<float>(this->commodel_kdes[4], (string(model_vars[4])+"->emk->kparam").c_str()) );
+	     kparam);
     std::cout << "SpinKDES 4, End now." << std::endl; fflush(stdout);
     return;
   }
