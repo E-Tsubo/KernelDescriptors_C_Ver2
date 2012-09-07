@@ -9,7 +9,10 @@ struct feature_node *x;
 int max_nr_attr = 64;
 
 struct model* model_;
-int flag_predict_probability=0;
+/*
+ *Estimate Probability Flag
+ */
+int flag_predict_probability=1;
 
 void exit_input_error(int line_num)
 {

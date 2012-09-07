@@ -50,6 +50,8 @@ CvCapture *capture = NULL;
   cv::VideoCapture capturekinect( CV_CAP_OPENNI );
 #endif
 
+int key = 0;
+
 void ClearCinBufferFlags()
 {
   cin.clear();//opt = -1;
@@ -69,6 +71,8 @@ void kinectCapture()
 {
   cv::Mat kinimg, kinimg_dep;
   IplImage tmp, tmp_dep;
+  IplImage* out = NULL;
+  IplImage* out_dep = NULL;
   
   capturekinect.grab();
   capturekinect.retrieve( kinimg, CV_CAP_OPENNI_BGR_IMAGE );//CV_8UC3
@@ -76,11 +80,13 @@ void kinectCapture()
   
   tmp = kinimg; tmp_dep = kinimg_dep;
   //if( FRAME_WIDTH_LIVE == 640 && FRAME_WIDTH_LIVE == 480 ){
-    IplImage* out = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_8U, 3 );
-    IplImage* out_dep = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_16U, 1 );
-    cvCopy( &tmp, out, NULL );
-    cvCopy( &tmp_dep, out_dep, NULL );
-    frame = out; frame_dep = out_dep;
+  cvReleaseImage( &out );
+  cvReleaseImage( &out_dep );
+  out = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_8U, 3 );
+  out_dep = cvCreateImage( cvSize( tmp.width, tmp.height ), IPL_DEPTH_16U, 1 );
+  cvCopy( &tmp, out, NULL );
+  cvCopy( &tmp_dep, out_dep, NULL );
+  frame = out; frame_dep = out_dep;
     //}else{
     //IplImage* out = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_8U, 3 );
     //IplImage* out_dep = cvCreateImage( cvSize( tmp.width/2, tmp.height/2 ), IPL_DEPTH_16U, 1 );
@@ -88,6 +94,7 @@ void kinectCapture()
     //cvResize( &tmp_dep, out_dep, CV_INTER_CUBIC );
     //frame = out; frame_dep = out_dep;
     //}
+  
 }
 #endif
 
@@ -95,10 +102,10 @@ void ThreadCaptureFrame()
 {
   cout << "Cam capture started..." << endl;
   
-  int key = 0;
+  //int key = 0;
   //capture = cvCaptureFromCAM(0);
   
-  cvNamedWindow("Camera View", CV_WINDOW_AUTOSIZE);
+  //cvNamedWindow("Camera View", CV_WINDOW_AUTOSIZE);
   while ((char)key != 'q')
     {
       {
@@ -111,7 +118,7 @@ void ThreadCaptureFrame()
       }
       if (!frame) break;
       cvPutText(frame, object_name.c_str(), cvPoint(10,20), &font,cvScalar(0,256,0));
-      cvShowImage("Camera View", frame);
+      //cvShowImage("Camera View", frame);
       key = cvWaitKey(1);
       //break;
       
@@ -133,7 +140,7 @@ void ThreadRunDescriptors()
   //
 
   cout << "Descriptor thread started..." << endl;
-  int key = 0;
+  //int key = 0;
   KernelDescManager* kdm = new KernelDescManager(string(model_name), string(model_file), string(model_var),
 						 string(param_file), MODEL_TYPE, MAX_IMAGE_SIZE);
   IplImage* img_src = NULL;//IEEE or Kinect
@@ -141,7 +148,7 @@ void ThreadRunDescriptors()
   IplImage* dep_src = NULL;//For kinect
   IplImage* dep_crop = NULL;//For kinect
   
-  cvNamedWindow ("Cropped Frame", CV_WINDOW_AUTOSIZE);
+  //cvNamedWindow ("Cropped Frame", CV_WINDOW_AUTOSIZE);
   cvNamedWindow("Processed Frame", CV_WINDOW_AUTOSIZE);
   if( USE_KINECT_DEP )
     cvNamedWindow("Depth Frame", CV_WINDOW_AUTOSIZE);
@@ -177,7 +184,7 @@ void ThreadRunDescriptors()
 	    //const int cut_height = 80;
 	    //DEPTH 640x480
 	    const int cut_width = 70;
-	    const int cut_height = 120;
+	    const int cut_height = 100;
 	    
 	    cv::Mat image( img_src );
 	    int xcenter = (int)(img_src->width/2);
@@ -186,11 +193,13 @@ void ThreadRunDescriptors()
 	    cv::Rect bounding_rect( xcenter-cut_width/2, ycenter-cut_height/2,
 				    cut_width, cut_height );
 	    cvSetImageROI( img_src, bounding_rect );
+	    cvReleaseImage( &img_crop );
 	    img_crop=cvCreateImage( cvSize(bounding_rect.width,bounding_rect.height), IPL_DEPTH_8U, 3 );
 	    cvCopy( img_src, img_crop, NULL );
 	    cvResetImageROI( img_src );
 	    if (USE_KINECT_DEP) {
 	      cvSetImageROI( dep_src, bounding_rect );
+	      cvReleaseImage( &dep_crop );
 	      dep_crop=cvCreateImage( cvSize(bounding_rect.width,bounding_rect.height), IPL_DEPTH_16U, 1 );
 	      cvCopy( dep_src, dep_crop, NULL );
 	      cvResetImageROI( dep_src );
@@ -354,7 +363,7 @@ void ThreadRunDescriptors()
 		object_name = kdm->GetObjectName(imfea2);
 	      cvPutText(img_src, object_name.c_str(), cvPoint(10,20), &font,cvScalar(0,256,0));
 	      
-	      cvShowImage("Cropped Frame", img_crop);
+	      //cvShowImage("Cropped Frame", img_crop);
 	      cvShowImage("Processed Frame", img_src);
 	      if( USE_KINECT_DEP ){
 		cv::Mat tmp( dep_src ); cv::Mat depthshow;
@@ -363,13 +372,16 @@ void ThreadRunDescriptors()
 		//cvShowImage("Depth Frame", dep_src);
 	      }
 	      //cv::DisplayOverlay("Camera View", object_name.c_str(), 1000);
-	      cvReleaseImage(&img_crop);
+	      //cvReleaseImage(&img_crop);
 	    }
 	}
       
       key = cvWaitKey(1);
     }
   delete kdm;
+  cvDestroyWindow( "Processed Frame" );
+  if( USE_KINECT_DEP )
+    cvDestroyWindow( "Depth Frame" );
   cout << "Descriptor thread ended..." << endl;
   
 }
@@ -415,30 +427,77 @@ void DataSetDemo()
     {
       MatrixXf imfea2;
       VectorXf top_left(2);
-      IplImage* img_init;
-      if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
+      IplImage* img_init, *img_init2;
+      if( USE_COMBINE_MODEL == 1 ){
+	/*
+	std::cout << string("./testim/" + *itr).c_str() << std::endl;
+	itr++;
+	std::cout << string("./testim/" + *itr).c_str() << std::endl;
+	itr++;
+	std::cout << string("./testim/" + *itr).c_str() << std::endl;
+	
+	loc, depthcrop, cropの順にload
+	*/
+	
+	std::string str, str2; std::stringstream ss, ss2;
+	std::cout << string("./testim/" + *itr).c_str() << std::endl;
+	std::ifstream loc( string("./testim/" + *itr).c_str() );
+	loc >> str >> str2;
+	str.erase( str.find( ",", 0 ), str.find( ",", 0 )+1 );
+	ss << str;
+	ss >> top_left[0];
+	std::cout << top_left[0] << std::endl;
+	
+	ss2 << str2;
+	ss2 >> top_left[1];
+	std::cout << top_left[1] << std::endl;
+	
+	loc.close();
+	itr++;
+	
+	std::cout << string("./testim/" + *itr).c_str() << std::endl;
+	img_init2 = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYDEPTH);
+	itr++;
+	
+	std::cout << string("./testim/" + *itr).c_str() << std::endl;
 	img_init = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYCOLOR);
-      else
-	img_init = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYDEPTH );
-      bool result;
-      if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
-	result = kdm->Process(imfea2,img_init);
-      else if( MODEL_TYPE == 3 )
-	result = kdm->Process(imfea2,img_init);
-      else if( MODEL_TYPE == 4 ){
-	top_left[0] = 317; top_left[1] = 169;//TODO:Load loc.txt file.
-	result = kdm->Process(imfea2,img_init, top_left);
+	std::cout << std::endl << "(ImagePath:" << string(*itr).c_str() << ")" << std::endl << std::endl;
+	
+	bool result = kdm->ProcessCombine(imfea2, img_init, img_init2, top_left);
+	string object_name = object_name = kdm->GetObjectNameCombine(imfea2);
+	
+	cvPutText(img_init, object_name.c_str(), cvPoint(30,30), &font ,cvScalar(0,256,0));
+	if( !run_debug_mode ){
+	  cvShowImage("Processed Image", img_init);
+	  char c = cvWaitKey(0);
+	}
+	cvReleaseImage(&img_init);
+	cvReleaseImage(&img_init2);
+      }else{
+	if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
+	  img_init = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYCOLOR);
+	else
+	  img_init = cvLoadImage( string("./testim/" + *itr).c_str(), CV_LOAD_IMAGE_ANYDEPTH );
+	bool result;
+	if( MODEL_TYPE == 0 || MODEL_TYPE == 2 )
+	  result = kdm->Process(imfea2,img_init);
+	else if( MODEL_TYPE == 3 )
+	  result = kdm->Process(imfea2,img_init);
+	else if( MODEL_TYPE == 4 ){
+	  top_left[0] = 317; top_left[1] = 169;//TODO:Load loc.txt file.
+	  result = kdm->Process(imfea2,img_init, top_left);
+	}
+	//cvShowImage("ProcessedImage", frame);
+	string object_name = kdm->GetObjectName(imfea2);
+	std::cout << "(ImagePath:" << string(*itr).c_str() << ")" << std::endl << std::endl;
+	cvPutText(img_init, object_name.c_str(), cvPoint(30,30), &font ,cvScalar(0,256,0));
+	if( !run_debug_mode ){
+	  cvShowImage("Processed Image", img_init);
+	  char c = cvWaitKey(0);
+	}
+	cvReleaseImage(&img_init);
       }
-      //cvShowImage("ProcessedImage", frame);
-      string object_name = kdm->GetObjectName(imfea2);
-      std::cout << "(ImagePath:" << string(*itr).c_str() << ")" << std::endl << std::endl;
-      cvPutText(img_init, object_name.c_str(), cvPoint(30,30), &font ,cvScalar(0,256,0));
-      if( !run_debug_mode ){
-	cvShowImage("Processed Image", img_init);
-	char c = cvWaitKey(0);
-      }
-      cvReleaseImage(&img_init);
-    }	
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -488,8 +547,10 @@ int main(int argc, char* argv[]) {
 	{
 	  ClearCinBufferFlags();
 	}
+      break;
     }
   fflush(stdout);
   
+  std::cout << "Exit" << std::endl;
   return 0;
 }

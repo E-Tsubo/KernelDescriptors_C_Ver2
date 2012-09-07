@@ -11,9 +11,9 @@ static unsigned int USE_MODEL_TYPE=MODEL_TYPE;
 //For Combine kdes if MODEL_TYPE is -2.
 static unsigned int USE_COMBINE_MODEL=1;
 static int MAX_COMBINE_MODEL_TYPE=5;
-static unsigned int MODEL_FLAG[5]={ 0, 0, 1, 1, 1 };//1 is used. 0 is not used.
+static unsigned int MODEL_FLAG[5]={ 1, 0, 1, 1, 1 };//1 is used. 0 is not used.
 static unsigned int COMBINE_TYPE;
-
+static unsigned int estimate_flag = 0;
 
 #define PI 3.14159265 
 #include <opencv/cv.h>
@@ -942,10 +942,17 @@ static void SpinKDESDense(MatrixXf& feaArr, MatrixXf& fgrid_y, MatrixXf& fgrid_x
 	      nn.col(0) = ( 1-nn.col(1).array().square() ).sqrt();
 
 	      assert( kparam(0)==kparam(1) );
-	      MatrixXf nkv = EvalKernelExp( npoints, nn.transpose(), kparam(0) );
+	      MatrixXf nkv, spinkv;
+	      {
+		boost::mutex::scoped_lock lock(mutex);
+		nkv = EvalKernelExp( npoints, nn.transpose(), kparam(0) );
+	      }
 	      assert( kparam(2)==kparam(3) );
-	      MatrixXf spinkv = EvalKernelExp( spoints, spin.transpose(), kparam(2) );
-
+	      {
+		boost::mutex::scoped_lock lock(mutex);
+		spinkv = EvalKernelExp( spoints, spin.transpose(), kparam(2) );
+	      }
+	      
 	      MatrixXf mwkv = (nkv*spinkv.transpose());
 	      mwkv.array() /= nkv.cols();
 
@@ -1103,6 +1110,8 @@ private:
 	int USE_TYPE_COUNT;
 	//int MAX_IMAGE_SIZE;
 	VectorXf comtop_left;
+
+	double* prob_estimates;
 	
 };
 #endif

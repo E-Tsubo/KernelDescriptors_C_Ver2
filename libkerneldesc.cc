@@ -89,8 +89,19 @@ int KernelDescManager::GetObjectName_liblinear(MatrixXf& imfea)
   if( linearmodel->bias >= 0 ){
     std::cerr << "model->bias >= 0! Not supported!!" << std::endl;
   }
-  int predict_label = predict( linearmodel, x );
-    
+  
+  int predict_label;
+  if( estimate_flag == 0 )
+    predict_label = predict( linearmodel, x );
+  else{
+    this->prob_estimates = (double*) malloc(nr_class*sizeof(double));
+    predict_label = predict_probability( linearmodel, x, prob_estimates );
+    for( int i = 0; i < nr_class; i++ ){
+      std::cout << i+1 << " : " << prob_estimates[i] << "  ";
+    }
+    std::cout << std::endl;
+  }
+  
   free(x);
   destroy_model( linearmodel );
   return predict_label;
@@ -125,7 +136,7 @@ string KernelDescManager::GetObjectName(MatrixXf& imfea)
   int predict_label = this->GetObjectName_liblinear( imfea_s );
   if( predict_label == -1 )
     return string("ERROR");
-  string str_result = (* this->model_list)[predict_label-1];
+  string str_result = (* this->commodel_list)[predict_label-1];
   std::cout << "predict_label:" << predict_label << "  "
 	    << "predict_name:" << str_result << std::endl;
   return str_result;
@@ -192,11 +203,19 @@ string KernelDescManager::GetObjectNameCombine(MatrixXf& imfea)
   int predict_label = this->GetObjectName_liblinear( imfea_s );
   if( predict_label == -1 )
     return string("ERROR");
-  string str_result = (* this->commodel_list)[predict_label-1];
+  
+  string str_result;
+  if( estimate_flag == 0 )
+    str_result = (* this->commodel_list)[predict_label-1];
+  else{
+    stringstream ss;
+    ss << " " << prob_estimates[predict_label-1];
+    str_result = (* this->commodel_list)[predict_label-1] + ss.str();
+  }
   std::cout << "predict_label:" << predict_label << "  "
 	    << "predict_name:" << str_result << std::endl;
-  return str_result;
   
+  return str_result;
 }
 
 /*
